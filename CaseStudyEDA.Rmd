@@ -1,0 +1,948 @@
+---
+title: "Case Study EDA"
+author: "Isiah Perine"
+date: "2024-10-21"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(e1071)
+library(class)
+library(caret)
+```
+
+
+```{r}
+# Reading in the data
+
+data = read.csv("CaseStudy1-data.csv")
+data
+```
+
+```{r}
+# checking for NA's
+
+sum(is.na(data))
+```
+
+```{r}
+# manipulating variables 
+
+data$Attrition = as.factor(data$Attrition)
+data$BusinessTravel = as.factor(data$BusinessTravel)
+data$Department = as.factor(data$Department)
+data$Education = as.factor(data$Education)
+data$EducationField = as.factor(data$EducationField)
+data$EnvironmentSatisfaction = as.factor(data$EnvironmentSatisfaction)
+data$Gender = as.factor(data$Gender)
+data$JobInvolvement = as.factor(data$JobInvolvement)
+data$JobLevel = as.factor(data$JobLevel)
+data$JobRole = as.factor(data$JobRole)
+data$JobSatisfaction = as.factor(data$JobSatisfaction)
+data$MaritalStatus = as.factor(data$MaritalStatus)
+data$Over18 = as.factor(data$Over18)
+data$OverTime = as.factor(data$OverTime)
+data$PerformanceRating = as.factor(data$PerformanceRating)
+data$RelationshipSatisfaction = as.factor(data$RelationshipSatisfaction)
+data$StockOptionLevel = as.factor(data$StockOptionLevel)
+data$WorkLifeBalance = as.factor(data$WorkLifeBalance)
+
+data
+```
+
+
+# EDA PORTION
+
+
+```{r}
+# Attrition vs Age
+
+summary(data$Age)
+
+data$AgeF = cut(data$Age, 
+                      breaks = c(17, 35, 61), 
+                      labels = c("Young", "Old"))
+
+attrition_percentage = data %>%
+  group_by(AgeF, Attrition) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count / sum(count) * 100)
+
+ggplot(attrition_percentage[attrition_percentage$Attrition == "Yes", ], 
+       aes(x = AgeF, y = percentage)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  ggtitle("Percentage of Attrition by Age") +
+  ylab("Percentage") +
+  xlab("Age")
+```
+
+*Young seems to have a higher percentage*
+
+
+```{r}
+# Attrition vs Business Travel
+
+attrition_percentage = data %>%
+  group_by(BusinessTravel, Attrition) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count / sum(count) * 100)
+
+ggplot(attrition_percentage[attrition_percentage$Attrition == "Yes", ], 
+       aes(x = BusinessTravel, y = percentage)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  ggtitle("Percentage of Attrition by Business Travel") +
+  ylab("Percentage") +
+  xlab("Business Travel")
+```
+
+*Travel Frequently seems to have the highest percentage*
+
+
+```{r}
+# Attrition vs Daily Rate
+
+summary(data$DailyRate)
+
+data$DailyRateF = cut(data$DailyRate, 
+                      breaks = c(100, 817, 1500), 
+                      labels = c("Low", "High"))
+
+attrition_percentage = data %>%
+  group_by(DailyRateF, Attrition) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count / sum(count) * 100)
+
+ggplot(attrition_percentage[attrition_percentage$Attrition == "Yes", ], 
+       aes(x = DailyRateF, y = percentage)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  ggtitle("Percentage of Attrition by Daily Rate") +
+  ylab("Percentage") +
+  xlab("Daily Rate")
+```
+
+*Not much of a percentage difference per group*
+
+
+```{r}
+# Attrition vs Department
+
+attrition_percentage = data %>%
+  group_by(Department, Attrition) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count / sum(count) * 100)
+
+ggplot(attrition_percentage[attrition_percentage$Attrition == "Yes", ], 
+       aes(x = Department, y = percentage)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  ggtitle("Percentage of Attrition by Department") +
+  ylab("Percentage") +
+  xlab("Department")
+```
+
+*Sales seems to have the highest percentage*
+
+
+```{r}
+# Attrition vs Distance From Home
+
+summary(data$DistanceFromHome)
+
+data$DistanceFromHomeF = cut(data$DistanceFromHome, 
+                      breaks = c(0, 7, 30), 
+                      labels = c("Close", "Far"))
+
+attrition_percentage = data %>%
+  group_by(DistanceFromHomeF, Attrition) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count / sum(count) * 100)
+
+ggplot(attrition_percentage[attrition_percentage$Attrition == "Yes", ], 
+       aes(x = DistanceFromHomeF, y = percentage)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  ggtitle("Percentage of Attrition by Distance From Home") +
+  ylab("Percentage") +
+  xlab("Distance From Home")
+```
+
+*Not much of a percentage difference per group*
+
+
+```{r}
+# Attrition vs Education
+
+attrition_percentage = data %>%
+  group_by(Education, Attrition) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count / sum(count) * 100)
+
+ggplot(attrition_percentage[attrition_percentage$Attrition == "Yes", ], 
+       aes(x = Education, y = percentage)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  ggtitle("Percentage of Attrition by Education") +
+  ylab("Percentage") +
+  xlab("Education")
+```
+
+*Below college seems to have the highest percentage. There also seems to be a decreasing pattern in percentage as education level increases*
+
+
+```{r}
+# Attrition vs Education Field
+
+attrition_percentage = data %>%
+  group_by(EducationField, Attrition) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count / sum(count) * 100)
+
+ggplot(attrition_percentage[attrition_percentage$Attrition == "Yes", ], 
+       aes(x = EducationField, y = percentage)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  ggtitle("Percentage of Attrition by Education Field") +
+  ylab("Percentage") +
+  xlab("Education Field")
+```
+
+*Human Resources seems to have the highest percentage* 
+
+
+```{r}
+# Attrition vs Environment Satisfaction
+
+attrition_percentage = data %>%
+  group_by(EnvironmentSatisfaction, Attrition) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count / sum(count) * 100)
+
+ggplot(attrition_percentage[attrition_percentage$Attrition == "Yes", ], 
+       aes(x = EnvironmentSatisfaction, y = percentage)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  ggtitle("Percentage of Attrition by Environment Satisfaction") +
+  ylab("Percentage") +
+  xlab("Environment Satisfaction")
+```
+
+*Low environment satisfaction seems to have the highest percentage*
+
+
+```{r}
+# Attrition vs Gender
+
+attrition_percentage = data %>%
+  group_by(Gender, Attrition) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count / sum(count) * 100)
+attrition_percentage
+
+ggplot(attrition_percentage[attrition_percentage$Attrition == "Yes", ], 
+       aes(x = Gender, y = percentage)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  ggtitle("Percentage of Attrition by Gender") +
+  ylab("Percentage") +
+  xlab("Gender")
+```
+
+*Not much of a percentage difference per group*
+
+
+```{r}
+# Attrition vs Hourly Rate
+
+summary(data$HourlyRate)
+
+data$HourlyRateF = cut(data$HourlyRate, 
+                      breaks = c(29, 66, 101), 
+                      labels = c("Low", "High"))
+
+attrition_percentage = data %>%
+  group_by(HourlyRateF, Attrition) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count / sum(count) * 100)
+
+ggplot(attrition_percentage[attrition_percentage$Attrition == "Yes", ], 
+       aes(x = HourlyRateF, y = percentage)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  ggtitle("Percentage of Attrition by Hourly Rate") +
+  ylab("Percentage") +
+  xlab("Hourly Rate")
+```
+
+*Not much of a percentage difference per group*
+
+
+```{r}
+# Attrition vs Job Involvement
+
+attrition_percentage = data %>%
+  group_by(JobInvolvement, Attrition) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count / sum(count) * 100)
+attrition_percentage
+
+ggplot(attrition_percentage[attrition_percentage$Attrition == "Yes", ], 
+       aes(x = JobInvolvement, y = percentage)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  ggtitle("Percentage of Attrition by Job Involvement") +
+  ylab("Percentage") +
+  xlab("Job Involvement")
+```
+
+*Low job involvement seems to have the highest percentage. There also seems to be a decreasing pattern in percentage as job involvement increases*
+
+
+```{r}
+# Attrition vs Job Level
+
+attrition_percentage = data %>%
+  group_by(JobLevel, Attrition) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count / sum(count) * 100)
+
+ggplot(attrition_percentage[attrition_percentage$Attrition == "Yes", ], 
+       aes(x = JobLevel, y = percentage)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  ggtitle("Percentage of Attrition by Job Level") +
+  ylab("Percentage") +
+  xlab("Job Level")
+```
+
+*The lowest job level seems to have the highest percentage. There does not seem to be a pattern in percentage as job level increases*
+
+
+```{r}
+# Attrition vs Job Role
+
+attrition_percentage = data %>%
+  group_by(JobRole, Attrition) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count / sum(count) * 100)
+attrition_percentage
+
+ggplot(attrition_percentage[attrition_percentage$Attrition == "Yes", ], 
+       aes(x = JobRole, y = percentage)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
+  ggtitle("Percentage of Attrition by Job Role") +
+  ylab("Percentage") +
+  xlab("Job Role")
+```
+
+*Sales Representative seems to have the highest percentage*
+
+
+```{r}
+# Attrition vs Job Satisfaction
+
+attrition_percentage = data %>%
+  group_by(JobSatisfaction, Attrition) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count / sum(count) * 100)
+
+ggplot(attrition_percentage[attrition_percentage$Attrition == "Yes", ], 
+       aes(x = JobSatisfaction, y = percentage)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  ggtitle("Percentage of Attrition by Job Satisfaction") +
+  ylab("Percentage") +
+  xlab("Job Satisfaction")
+```
+
+*Low job satisfaction seems to have the highest percentage. There also seems to be a decreasing pattern in percentage as job satisfaction increases*
+
+
+```{r}
+# Attrition vs Marital Status
+
+attrition_percentage = data %>%
+  group_by(MaritalStatus, Attrition) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count / sum(count) * 100)
+
+ggplot(attrition_percentage[attrition_percentage$Attrition == "Yes", ], 
+       aes(x = MaritalStatus, y = percentage)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  ggtitle("Percentage of Attrition by Marital Status") +
+  ylab("Percentage") +
+  xlab("Marital Status")
+```
+
+*Single marital status seems to have the highest percentage. There also seems to be a decreasing pattern in percentage as marital status goes from single -> married -> divorced*
+
+
+```{r}
+# Attrition vs Monthly Income
+
+summary(data$MonthlyIncome)
+
+data$MonthlyIncomeF = cut(data$MonthlyIncome, 
+                      breaks = c(1080, 4946, 20000), 
+                      labels = c("Low", "High"))
+
+attrition_percentage = data %>%
+  group_by(MonthlyIncomeF, Attrition) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count / sum(count) * 100)
+
+ggplot(attrition_percentage[attrition_percentage$Attrition == "Yes", ], 
+       aes(x = MonthlyIncomeF, y = percentage)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  ggtitle("Percentage of Attrition by Monthly Income") +
+  ylab("Percentage") +
+  xlab("Monthly Income")
+```
+
+*Low monthly income seems to have a higher percentage*
+
+
+```{r}
+# Attrition vs Monthly Rate
+
+summary(data$MonthlyRate)
+
+data$MonthlyRateF = cut(data$MonthlyRate, 
+                      breaks = c(2093, 14074, 26998), 
+                      labels = c("Low", "High"))
+
+attrition_percentage = data %>%
+  group_by(MonthlyRateF, Attrition) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count / sum(count) * 100)
+
+ggplot(attrition_percentage[attrition_percentage$Attrition == "Yes", ], 
+       aes(x = MonthlyRateF, y = percentage)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  ggtitle("Percentage of Attrition by Monthly Rate") +
+  ylab("Percentage") +
+  xlab("Monthly Rate")
+```
+
+*Not much of a percentage difference per group*
+
+
+```{r}
+# Attrition vs Number of Companies Worked At
+
+summary(data$NumCompaniesWorked)
+
+data$NumCompaniesWorkedF = cut(data$NumCompaniesWorked, 
+                      breaks = c(-1, 2, 10), 
+                      labels = c("Low", "High"))
+
+attrition_percentage = data %>%
+  group_by(NumCompaniesWorkedF, Attrition) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count / sum(count) * 100)
+
+ggplot(attrition_percentage[attrition_percentage$Attrition == "Yes", ], 
+       aes(x = NumCompaniesWorkedF, y = percentage)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  ggtitle("Percentage of Attrition by Number of Companies Worked") +
+  ylab("Percentage") +
+  xlab("Number of Companies Worked At")
+```
+
+*Not much of a percentage difference per group*
+
+
+```{r}
+# Attrition vs Over 18
+
+attrition_percentage = data %>%
+  group_by(Over18, Attrition) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count / sum(count) * 100)
+
+ggplot(attrition_percentage, 
+       aes(x = Attrition, y = percentage)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  ggtitle("Percentage of Attrition by Over 18") +
+  ylab("Percentage") +
+  xlab("Attrition")
+```
+
+*All individuals in the data set are over 18. All this plot tells me is that about 16% of the individuals in the data set fall into the 'yes' category for attrition*
+
+
+```{r}
+# Attrition vs Over Time
+
+attrition_percentage = data %>%
+  group_by(OverTime, Attrition) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count / sum(count) * 100)
+attrition_percentage
+
+ggplot(attrition_percentage[attrition_percentage$Attrition == "Yes", ], 
+       aes(x = OverTime, y = percentage)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  ggtitle("Percentage of Attrition by Over Time") +
+  ylab("Percentage") +
+  xlab("Over Time")
+```
+
+*Over time workers seems to have a higher percentage*
+
+
+```{r}
+# Attrition vs Percent Salary Hike
+
+summary(data$PercentSalaryHike)
+
+data$PercentSalaryHikeF = cut(data$PercentSalaryHike, 
+                      breaks = c(10, 14, 26), 
+                      labels = c("Low", "High"))
+
+attrition_percentage = data %>%
+  group_by(PercentSalaryHikeF, Attrition) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count / sum(count) * 100)
+
+ggplot(attrition_percentage[attrition_percentage$Attrition == "Yes", ], 
+       aes(x = PercentSalaryHikeF, y = percentage)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  ggtitle("Percentage of Attrition by Percent Salary Hike") +
+  ylab("Percentage") +
+  xlab("Percent Salary Hike")
+```
+
+*Not much of a percentage difference per group*
+
+
+```{r}
+# Attrition vs Performance Rating
+
+attrition_percentage = data %>%
+  group_by(PerformanceRating, Attrition) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count / sum(count) * 100)
+
+ggplot(attrition_percentage[attrition_percentage$Attrition == "Yes", ], 
+       aes(x = PerformanceRating, y = percentage)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  ggtitle("Percentage of Attrition by Performance Rating") +
+  ylab("Percentage") +
+  xlab("Performance Rating")
+```
+
+*Not much of a percentage difference per group*
+
+
+```{r}
+# Attrition vs Relationship Satisfaction
+
+attrition_percentage = data %>%
+  group_by(RelationshipSatisfaction, Attrition) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count / sum(count) * 100)
+
+ggplot(attrition_percentage[attrition_percentage$Attrition == "Yes", ], 
+       aes(x = RelationshipSatisfaction, y = percentage)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  ggtitle("Percentage of Attrition by Relationship Satisfaction") +
+  ylab("Percentage") +
+  xlab("Relationship Satisfaction")
+```
+
+*Not much of a percentage difference per group*
+
+
+```{r}
+# Attrition vs Standard Hours
+
+attrition_percentage = data %>%
+  group_by(StandardHours, Attrition) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count / sum(count) * 100)
+
+ggplot(attrition_percentage, 
+       aes(x = Attrition, y = percentage)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  ggtitle("Percentage of Attrition by Standard Hours") +
+  ylab("Percentage") +
+  xlab("Attrition")
+```
+
+*All individuals in the data set have 80 standard hours. All this plot tells me is that about 16% of the individuals in the data set fall into the 'yes' category for attrition*
+
+
+```{r}
+# Attrition vs Stock Option Level
+
+attrition_percentage = data %>%
+  group_by(StockOptionLevel, Attrition) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count / sum(count) * 100)
+
+ggplot(attrition_percentage[attrition_percentage$Attrition == "Yes", ], 
+       aes(x = StockOptionLevel, y = percentage)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  ggtitle("Percentage of Attrition by Stock Option Level") +
+  ylab("Percentage") +
+  xlab("Stock Option Level")
+```
+
+*0 and 3 stock option levels seem to have the highest percentage*
+
+
+```{r}
+# Attrition vs Total Working Years
+
+summary(data$TotalWorkingYears)
+
+data$TotalWorkingYearsF = cut(data$TotalWorkingYears, 
+                      breaks = c(-1, 10, 40), 
+                      labels = c("Low", "High"))
+
+attrition_percentage = data %>%
+  group_by(TotalWorkingYearsF, Attrition) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count / sum(count) * 100)
+
+ggplot(attrition_percentage[attrition_percentage$Attrition == "Yes", ], 
+       aes(x = TotalWorkingYearsF, y = percentage)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  ggtitle("Percentage of Attrition by Total Working Years") +
+  ylab("Percentage") +
+  xlab("Total Working Years")
+```
+
+*Not much of a percentage difference per group*
+
+
+```{r}
+# Attrition vs Training Times Last Years
+
+summary(data$TrainingTimesLastYear)
+
+data$TrainingTimesLastYearF = cut(data$TrainingTimesLastYear, 
+                      breaks = c(-1, 3, 6), 
+                      labels = c("Low", "High"))
+
+attrition_percentage = data %>%
+  group_by(TrainingTimesLastYearF, Attrition) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count / sum(count) * 100)
+
+ggplot(attrition_percentage[attrition_percentage$Attrition == "Yes", ], 
+       aes(x = TrainingTimesLastYearF, y = percentage)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  ggtitle("Percentage of Attrition by Training Times Last Year") +
+  ylab("Percentage") +
+  xlab("Training Times Last Year")
+```
+
+*Not much of a percentage difference per group*
+
+
+```{r}
+# Attrition vs Work Life Balance
+
+attrition_percentage = data %>%
+  group_by(WorkLifeBalance, Attrition) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count / sum(count) * 100)
+
+ggplot(attrition_percentage[attrition_percentage$Attrition == "Yes", ], 
+       aes(x = WorkLifeBalance, y = percentage)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  ggtitle("Percentage of Attrition by Work Life Balance") +
+  ylab("Percentage") +
+  xlab("Work Life Balance")
+```
+
+*Bad work life balance seems to have the highest percentage. There also seems to be a decreasing pattern in percentage as work life balance gets better*
+
+
+```{r}
+# Attrition vs Years At Company
+
+summary(data$YearsAtCompany)
+
+data$YearsAtCompanyF = cut(data$YearsAtCompany, 
+                      breaks = c(-1, 5, 40), 
+                      labels = c("Low", "High"))
+
+attrition_percentage = data %>%
+  group_by(YearsAtCompanyF, Attrition) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count / sum(count) * 100)
+
+ggplot(attrition_percentage[attrition_percentage$Attrition == "Yes", ], 
+       aes(x = YearsAtCompanyF, y = percentage)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  ggtitle("Percentage of Attrition by Years At Company") +
+  ylab("Percentage") +
+  xlab("Years At Company")
+```
+
+*Low years at company seems to have a higher percentage*
+
+
+```{r}
+# Attrition vs Years In Current Role
+
+summary(data$YearsInCurrentRole)
+
+data$YearsInCurrentRoleF = cut(data$YearsInCurrentRole, 
+                      breaks = c(-1, 3, 18), 
+                      labels = c("Low", "High"))
+
+attrition_percentage = data %>%
+  group_by(YearsInCurrentRoleF, Attrition) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count / sum(count) * 100)
+
+ggplot(attrition_percentage[attrition_percentage$Attrition == "Yes", ], 
+       aes(x = YearsInCurrentRoleF, y = percentage)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  ggtitle("Percentage of Attrition by Years In Current Role") +
+  ylab("Percentage") +
+  xlab("Years In Current Role")
+```
+
+*Low years in current role seems to have a higher percentage*
+
+
+```{r}
+# Attrition vs Years Since Last Promotion
+
+summary(data$YearsSinceLastPromotion)
+
+data$YearsSinceLastPromotionF = cut(data$YearsSinceLastPromotion, 
+                      breaks = c(-1, 1, 15), 
+                      labels = c("Low", "High"))
+
+attrition_percentage = data %>%
+  group_by(YearsSinceLastPromotionF, Attrition) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count / sum(count) * 100)
+
+ggplot(attrition_percentage[attrition_percentage$Attrition == "Yes", ], 
+       aes(x = YearsSinceLastPromotionF, y = percentage)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  ggtitle("Percentage of Attrition by Years Since Last Promotion") +
+  ylab("Percentage") +
+  xlab("Years Since Last Promotion")
+```
+
+*Not much of a percentage difference per group*
+
+
+```{r}
+# Attrition vs Years With Current Manager
+
+summary(data$YearsWithCurrManager)
+
+data$YearsWithCurrManagerF = cut(data$YearsWithCurrManager, 
+                      breaks = c(-1, 3, 17), 
+                      labels = c("Low", "High"))
+
+attrition_percentage = data %>%
+  group_by(YearsWithCurrManagerF, Attrition) %>%
+  summarise(count = n()) %>%
+  mutate(percentage = count / sum(count) * 100)
+
+ggplot(attrition_percentage[attrition_percentage$Attrition == "Yes", ], 
+       aes(x = YearsWithCurrManagerF, y = percentage)) +
+  geom_bar(stat = "identity", fill = "blue") +
+  ggtitle("Percentage of Attrition by Years With Current Manager") +
+  ylab("Percentage") +
+  xlab("Years With Current Manager")
+```
+
+*Not much of a percentage difference per group*
+
+
+
+# All of the variables with visual evidence of an impact to attrition
+
+# Age
+# BusinessTravel
+# Department
+# Education
+# EducationField
+# EnvironmentSatisfaction
+# JobInvolvement
+# JobLevel
+# JobRole
+# JobSatisfaction
+# MaritalStatus
+# MonthlyIncome
+# OverTime
+# StockOptionLevel
+# WorkLifeBalance
+# YearsAtCompany
+# YearsInCurrentRole
+
+```{r}
+# Chi-squared test to check for significantly correlated variables 
+
+chisq.test(table(data$Attrition, data$Age)) #p-value = 0.0004559
+chisq.test(table(data$Attrition, data$BusinessTravel)) #p-value = 0.04993
+chisq.test(table(data$Attrition, data$Department)) #p-value = 0.009424
+chisq.test(table(data$Attrition, data$Education)) #p-value = 0.6243
+chisq.test(table(data$Attrition, data$EducationField)) #p-value = 0.2682
+chisq.test(table(data$Attrition, data$JobInvolvement)) #p-value < 0.0001
+chisq.test(table(data$Attrition, data$JobLevel)) #p-value < 0.0001
+chisq.test(table(data$Attrition, data$JobRole)) #p-value < 0.0001
+chisq.test(table(data$Attrition, data$JobSatisfaction)) #p-value = 0.01115
+chisq.test(table(data$Attrition, data$MaritalStatus)) #p-value < 0.0001
+chisq.test(table(data$Attrition, data$MonthlyIncome)) #p-value = 0.5485
+chisq.test(table(data$Attrition, data$OverTime)) #p-value < 0.0001
+chisq.test(table(data$Attrition, data$StockOptionLevel)) #p-value < 0.0001
+chisq.test(table(data$Attrition, data$WorkLifeBalance)) #p-value = 0.002495
+chisq.test(table(data$Attrition, data$YearsAtCompany)) #p-value < 0.0001
+chisq.test(table(data$Attrition, data$YearsInCurrentRole)) #p-value = 0.0007929
+```
+
+# The variales with the most significant correlation
+
+# 1.) JobInvolvement
+# 2.) JobLevel
+# 3.) JobRole
+# 4.) MaritalStatus
+# 5.) OverTime
+# 6.) StockOptionLevel
+# 7.) YearsAtCompany
+
+# I can make 35 models with 3 of the 7 varibles I have listed
+
+```{r}
+# calculating mean Accuracy, Sensitivity, and Specificity
+
+AccHolder = numeric(100)
+SensHolder = numeric(100)
+SpecHolder = numeric(100)
+
+for (seed in 1:100)
+{
+set.seed(seed)
+trainIndices = sample(seq(1:length(data$Attrition)), round(.7*length(data$Attrition)))
+train = data[trainIndices, ]
+test = data[-trainIndices, ]
+model = naiveBayes(train[, c("OverTime", "StockOptionLevel", "JobRole")], train$Attrition)
+CM = confusionMatrix(table(predict(model, test[, c("OverTime", "StockOptionLevel", "JobRole")]), test$Attrition))
+AccHolder[seed] = CM$overall[1]
+SensHolder[seed] = CM$byClass[1]
+SpecHolder[seed] = CM$byClass[2]
+}
+
+mean(AccHolder)
+mean(SensHolder)
+mean(SpecHolder)
+```
+
+
+
+```{r}
+# creating confusion matrices for presentation 
+
+# best
+set.seed(1)
+trainIndices = sample(seq(1:length(data$Attrition)), round(.7*length(data$Attrition)))
+train = data[trainIndices, ]
+test = data[-trainIndices, ]
+model = naiveBayes(train[, c("MaritalStatus", "OverTime", "StockOptionLevel")], train$Attrition)
+confusionMatrix(table(predict(model, test[, c("MaritalStatus", "OverTime", "StockOptionLevel")]), test$Attrition))
+
+# second best
+set.seed(1)
+trainIndices = sample(seq(1:length(data$Attrition)), round(.7*length(data$Attrition)))
+train = data[trainIndices, ]
+test = data[-trainIndices, ]
+model = naiveBayes(train[, c("JobLevel", "OverTime", "StockOptionLevel")], train$Attrition)
+confusionMatrix(table(predict(model, test[, c("JobLevel", "OverTime", "StockOptionLevel")]), test$Attrition))
+```
+
+
+```{r}
+# finding the "best" model
+
+AccHolder = numeric(100)
+SensHolder = numeric(100)
+SpecHolder = numeric(100)
+
+for (seed in 1:100)
+{
+set.seed(seed)
+trainIndices = sample(seq(1:length(data$Attrition)), round(.7*length(data$Attrition)))
+train = data[trainIndices, ]
+test = data[-trainIndices, ]
+model = naiveBayes(train[, c("JobInvolvement", "JobLevel", "OverTime", "YearsAtCompany", "JobRole", "Age", "BusinessTravel", "Education", "MaritalStatus", "StockOptionLevel", "WorkLifeBalance", "YearsInCurrentRole", "EnvironmentSatisfaction", "MonthlyIncome", "DistanceFromHome", "YearsWithCurrManager", "TotalWorkingYears")], train$Attrition)
+CM = confusionMatrix(table(predict(model, test[, c("JobInvolvement", "JobLevel", "OverTime", "YearsAtCompany", "JobRole", "Age", "BusinessTravel", "Education", "MaritalStatus", "StockOptionLevel", "WorkLifeBalance", "YearsInCurrentRole", "EnvironmentSatisfaction", "MonthlyIncome", "DistanceFromHome", "YearsWithCurrManager", "TotalWorkingYears")]), test$Attrition))
+AccHolder[seed] = CM$overall[1]
+SensHolder[seed] = CM$byClass[1]
+SpecHolder[seed] = CM$byClass[2]
+}
+
+mean(AccHolder)
+mean(SensHolder)
+mean(SpecHolder)
+```
+
+
+
+# FINAL MODEL
+
+```{r}
+# reading in data
+
+competition = read.csv("CaseStudy1CompSet No Attrition.csv")
+competition
+```
+
+```{r}
+# manipulating variables 
+
+competition$BusinessTravel = as.factor(competition$BusinessTravel)
+competition$Department = as.factor(competition$Department)
+competition$Education = as.factor(competition$Education)
+competition$EducationField = as.factor(competition$EducationField)
+competition$EnvironmentSatisfaction = as.factor(competition$EnvironmentSatisfaction)
+competition$Gender = as.factor(competition$Gender)
+competition$JobInvolvement = as.factor(competition$JobInvolvement)
+competition$JobLevel = as.factor(competition$JobLevel)
+competition$JobRole = as.factor(competition$JobRole)
+competition$JobSatisfaction = as.factor(competition$JobSatisfaction)
+competition$MaritalStatus = as.factor(competition$MaritalStatus)
+competition$Over18 = as.factor(competition$Over18)
+competition$OverTime = as.factor(competition$OverTime)
+competition$PerformanceRating = as.factor(competition$PerformanceRating)
+competition$RelationshipSatisfaction = as.factor(competition$RelationshipSatisfaction)
+competition$StockOptionLevel = as.factor(competition$StockOptionLevel)
+competition$WorkLifeBalance = as.factor(competition$WorkLifeBalance)
+```
+
+
+```{r}
+# reating predictions
+
+final.model = naiveBayes(data[, c("JobInvolvement", "JobLevel", "OverTime", "YearsAtCompany", "JobRole", "Age", "BusinessTravel", "Education", "MaritalStatus", "StockOptionLevel", "WorkLifeBalance", "YearsInCurrentRole", "EnvironmentSatisfaction", "MonthlyIncome", "DistanceFromHome", "YearsWithCurrManager", "TotalWorkingYears")], data$Attrition)
+
+preds = predict(model, competition[, c("JobRole", "OverTime", "YearsAtCompany")])
+preds
+```
+
+```{r}
+# creating data frame for IDs and predictions
+
+submit = data.frame(ID = competition$ID, Attrition = preds)
+submit
+
+yes = subset(submit, submit$Attrition == "Yes")
+yes
+
+no = subset(submit, submit$Attrition == "No")
+no
+```
+
+```{r}
+# creating csv with my solutions
+
+write_csv(submit, "Case1PredictionsPerine Attrition.csv")
+```
+
+
